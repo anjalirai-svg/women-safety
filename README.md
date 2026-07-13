@@ -1,217 +1,88 @@
-# 🛡️ Women Safety Analytics System — Python & ML
+# 🛡️ Women Safety Analytics
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)
-![ML](https://img.shields.io/badge/Machine%20Learning-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
-![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
+A Python-based analytics system that processes live video/sensor streams using Machine Learning to detect potentially unsafe situations in public spaces — such as unusual crowd gender ratios, distress gestures, or lone-woman-at-night patterns — and raises real-time alerts.
 
-> A real-time threat detection pipeline processing video and sensor data streams using pattern recognition — achieved 91% alert accuracy with automated monitoring and alert generation.
+## 📌 Overview
 
----
+Public safety monitoring today relies heavily on manual CCTV watching, which doesn't scale. This project applies **computer vision and machine learning** to video streams (e.g. from CCTV/IP cameras) to flag scenarios that may indicate risk to women's safety — like a lone woman surrounded by a group of men at night, sudden distress gestures, or abnormal loitering patterns — and sends real-time alerts to control room dashboards or security personnel.
 
-## 📌 Project Overview
+> ⚠️ **Note:** This is intended as an assistive analytics/decision-support tool for authorities, not a replacement for human judgment or law enforcement. Care must be taken around bias, privacy, and false positives before any real-world deployment.
 
-Women's safety is a critical social issue that technology can meaningfully address. This system uses **computer vision and machine learning** to:
+## ✨ Features
 
-- **Detect potential threat scenarios** in real-time video streams
-- **Analyze environmental patterns** (crowd density, time, location data)
-- **Generate automated alerts** when threat patterns are identified
-- **Produce analytics reports** on safety incidents over time
+- 🎥 Real-time video stream processing (RTSP/webcam/CCTV feed)
+- 🧍‍♀️ Person detection & gender classification (aggregate, not individual profiling)
+- 🚨 Lone-woman-at-night detection
+- 👥 Abnormal gender-ratio / surrounding pattern detection
+- 🙋 Distress gesture recognition (SOS hand signal, sudden running)
+- 📊 Analytics dashboard with incident logs & heatmaps
+- 🔔 Real-time alerting (console/webhook/SMS-ready)
 
----
+## 🛠️ Tech Stack
 
-## 🎯 Problem Statement
-
-> "According to NCRB data, crimes against women in India occur every 16 minutes. A real-time automated detection system can reduce response time from minutes to seconds."
-
----
-
-## ⚙️ System Architecture
-
-```
-┌─────────────────┐     ┌──────────────────┐     ┌────────────────────┐
-│  Input Sources  │────▶│  Preprocessing   │────▶│  Detection Engine  │
-│  Camera Feed    │     │  Frame resize    │     │  Pattern Recognition│
-│  Sensor Data    │     │  Noise removal   │     │  Threat Scoring    │
-│  Location Data  │     │  Normalization   │     └────────┬───────────┘
-└─────────────────┘     └──────────────────┘              │
-                                                          ▼
-                        ┌──────────────────┐     ┌────────────────────┐
-                        │  Analytics       │◀────│  Alert System      │
-                        │  Dashboard       │     │  SMS / Email Alert │
-                        │  Incident Logs   │     │  Incident Logging  │
-                        └──────────────────┘     └────────────────────┘
-```
-
----
-
-## 🛠️ Tools & Technologies
-
-| Component | Technology |
-|-----------|-----------|
-| Language | Python 3.x |
-| Computer Vision | OpenCV |
-| ML Framework | Scikit-learn |
-| Data Processing | Pandas, NumPy |
-| Visualization | Matplotlib, Seaborn |
-| Alert System | SMTP (Email) / Twilio (SMS) |
-| Data Storage | SQLite / CSV logs |
-
----
-
-## 🔬 Detection Pipeline
-
-```python
-import cv2
-import numpy as np
-import pandas as pd
-from datetime import datetime
-
-# ── Step 1: Video frame capture ──
-def capture_frame(source=0):
-    cap = cv2.VideoCapture(source)
-    ret, frame = cap.read()
-    cap.release()
-    return frame if ret else None
-
-# ── Step 2: Preprocessing ──
-def preprocess_frame(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    resized = cv2.resize(gray, (224, 224))
-    normalized = resized / 255.0
-    return normalized
-
-# ── Step 3: Motion detection ──
-def detect_motion(prev_frame, curr_frame, threshold=25):
-    diff = cv2.absdiff(prev_frame, curr_frame)
-    _, thresh = cv2.threshold(diff, threshold, 255, cv2.THRESH_BINARY)
-    motion_score = np.sum(thresh) / thresh.size
-    return motion_score
-
-# ── Step 4: Threat scoring ──
-def calculate_threat_score(motion, hour, location_risk):
-    """
-    Weighted threat score based on:
-    - Motion intensity (40%)
-    - Time of day (30%) — night hours = higher risk
-    - Location risk factor (30%)
-    """
-    time_factor = 1.5 if (hour >= 22 or hour <= 5) else 1.0
-    score = (motion * 0.4) + (time_factor * 0.3) + (location_risk * 0.3)
-    return round(score, 3)
-
-# ── Step 5: Alert generation ──
-def generate_alert(threat_score, location, timestamp):
-    if threat_score > 0.75:
-        alert = {
-            'timestamp': timestamp,
-            'location': location,
-            'threat_score': threat_score,
-            'severity': 'HIGH',
-            'action': 'Immediate alert sent'
-        }
-        log_incident(alert)
-        send_alert(alert)
-        return alert
-    return None
-```
-
----
-
-## 📊 Analytics Dashboard (Data Layer)
-
-```python
-# Load incident logs for analytics
-df = pd.read_csv('data/incident_logs.csv')
-df['timestamp'] = pd.to_datetime(df['timestamp'])
-df['hour'] = df['timestamp'].dt.hour
-df['date'] = df['timestamp'].dt.date
-
-# Incident frequency by hour
-import matplotlib.pyplot as plt
-hourly = df.groupby('hour').size()
-plt.figure(figsize=(12, 4))
-plt.bar(hourly.index, hourly.values, color='crimson', alpha=0.7)
-plt.title('Incident Frequency by Hour of Day')
-plt.xlabel('Hour')
-plt.ylabel('Number of Incidents')
-plt.xticks(range(24))
-plt.tight_layout()
-plt.show()
-
-# High risk locations
-location_risk = df.groupby('location').size().sort_values(ascending=False).head(10)
-print("Top 10 High-Risk Locations:\n", location_risk)
-```
-
----
-
-## 💡 Key Results
-
-| Metric | Value |
-|--------|-------|
-| Alert Accuracy | 91% |
-| False Positive Rate | 9% |
-| Average Response Time | < 3 seconds |
-| Peak Risk Hours | 10 PM – 2 AM |
-| Incidents Logged | 500+ test scenarios |
-
----
+- **Python 3.9+**
+- **OpenCV** — video stream capture & preprocessing
+- **YOLOv8 (Ultralytics)** — person detection
+- **Machine Learning classifier** — gender classification model (trained/fine-tuned separately)
+- **MediaPipe** — pose/gesture estimation for distress signals
+- **Flask** — lightweight alert/dashboard backend
+- **SQLite/CSV** — incident logging
 
 ## 📂 Project Structure
 
 ```
-women-safety/
-│
-├── data/
-│   └── incident_logs.csv        # Logged incidents
-│
+women-safety-analytics/
 ├── src/
-│   ├── capture.py               # Video frame capture
-│   ├── preprocess.py            # Image preprocessing
-│   ├── detector.py              # Threat detection engine
-│   ├── alert.py                 # Alert generation
-│   └── analytics.py            # Reporting & visualization
-│
-├── notebooks/
-│   └── analytics_eda.ipynb      # Incident data analysis
-│
+│   ├── stream_processor.py     # Captures & processes video stream frame-by-frame
+│   ├── detection.py            # Person detection + gender classification logic
+│   ├── gesture_analysis.py     # Distress gesture / pose-based analysis
+│   ├── alert_manager.py        # Handles alert triggering & logging
+│   └── main.py                 # Entry point - orchestrates the pipeline
 ├── models/
-│   └── threat_model.pkl         # Trained classifier
-│
+│   └── README.md                # Notes on model weights (not included, see below)
+├── docs/
+│   └── ethical_considerations.md
+├── requirements.txt
 └── README.md
 ```
 
----
+## 🚀 Getting Started
 
-## 🚀 How to Run
-
+### 1. Set up environment
 ```bash
-git clone https://github.com/anjalirai-svg/women-safety.git
-cd women-safety
-pip install opencv-python pandas numpy matplotlib scikit-learn
-python src/detector.py
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
----
+### 2. Add model weights
+Download a pretrained YOLOv8 model (e.g. `yolov8n.pt` from Ultralytics) and place it in `models/`. Gender classification and gesture models should be trained/fine-tuned on appropriate, consented, and bias-audited datasets — see `docs/ethical_considerations.md`.
 
-## 🎓 Skills Demonstrated
+### 3. Run the pipeline
+```bash
+python src/main.py --source 0        # webcam
+python src/main.py --source rtsp://your-camera-stream-url
+```
 
-- ✅ Computer Vision with OpenCV
-- ✅ Real-time data stream processing
-- ✅ Pattern recognition and ML scoring
-- ✅ Automated alert system design
-- ✅ Incident data analytics and EDA
-- ✅ Time-series analysis on incident logs
+## ⚙️ How It Works
 
----
+1. `stream_processor.py` pulls frames from the video source (webcam, RTSP CCTV feed, or video file).
+2. `detection.py` runs person detection (YOLOv8) and aggregate gender classification per frame.
+3. `gesture_analysis.py` uses MediaPipe pose landmarks to flag distress gestures or sudden erratic movement.
+4. Contextual rules (time of day + lone individual + surrounding count) combine these signals to compute a risk score.
+5. `alert_manager.py` logs incidents and triggers alerts (console output by default; extendable to SMS/webhook/control-room dashboard).
 
-## 👩‍💻 Author
+## 📈 Future Improvements
 
-**Anjali Rai**
-B.Tech Computer Science (IoT) — ABES Institute of Technology, Ghaziabad
-📧 anjali.maykhargpur@gmail.com
-🔗 [LinkedIn](https://linkedin.com/in/anjalirai06) | [GitHub](https://github.com/anjalirai-svg)
+- Integration with municipal CCTV control rooms via RTSP aggregation
+- Heatmap-based "unsafe zone" analytics over time
+- Mobile panic-button app integration
+- On-device edge inference (Jetson Nano/Coral) for privacy-preserving deployment
 
----
-⭐ Star this repo if you found it useful!
+## ⚖️ Ethical & Privacy Considerations
+
+See [`docs/ethical_considerations.md`](docs/ethical_considerations.md) — this system involves human subject detection and must be deployed with strict attention to privacy law, consent, bias auditing, and oversight to avoid misuse or false positives.
+
+## 📄 License
+
+MIT License — feel free to use and modify.
